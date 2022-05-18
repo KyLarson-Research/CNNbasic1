@@ -10,12 +10,14 @@ using namespace std;
 #define N_HIDDEN 2
 #define N_WEIGHTS_2 2
 #define N_OUTPUT_NEURONS 1
+#define h .001
 #define N_INPUTS  (N_INPUT_NEURONS * N_INPUT_NEURONS)
+#define N_TRAIN_COLS N_INPUT_NEURONS + N_OUTPUT_NEURONS
 struct NN {
     float input_neurons[N_INPUT_NEURONS];
-    float weights_1[N_WEIGHTS_1];
+    float ws_1[N_WEIGHTS_1];
     float hidden[N_HIDDEN];
-    float weights_2[N_WEIGHTS_2];
+    float ws_2[N_WEIGHTS_2];
     float output;
 };
 //Constructor Destructor
@@ -45,9 +47,9 @@ void init(float* nt, int layer) {
 NN *new_NN() {
     NN* NNet = (NN*)malloc(sizeof(NN));
     init(NNet->input_neurons, 0);
-    init(NNet->weights_1, 1);
+    init(NNet->ws_1, 1);
     init(NNet->hidden, 2);
-    init(NNet->weights_2, 3);
+    init(NNet->ws_2, 3);
     NNet->output = -1;
     return NNet;
 }
@@ -74,13 +76,42 @@ float *L1_multiply(float A[N_INPUTS], float B[N_WEIGHTS_1] ) {
 
     return C;
 }
-
-void feed_forward(NN *NNet) {
-    float *Second_Layer = L1_multiply(NNet->input_neurons, NNet->weights_1);
-    for (int i = 0; i < N_HIDDEN; i++) {
-        NNet->output += Second_Layer[i];
-    }
+float threshold(float x) { // "Fast Sigmoid"
+    return x / (1 + abs(x));
 }
+float feed_forward(NN *NNet) {
+    float *Second_Layer = L1_multiply(NNet->input_neurons, NNet->ws_1);
+    float action_potential;
+    for (int i = 0; i < N_HIDDEN; i++) {
+        action_potential += Second_Layer[i];
+    }
+    return threshold(action_potential);
+}
+// Learn
+// Function that takes a pointer
+// to a function
+float slope_at_a_point(float x, float (*func)(float))
+{   //classical definition of derivative
+    float d = (func(h + x) - func(x)) / h;
+    return d;
+}
+float wrapper(float parameter) {
+    //feed_forward();
+    return parameter;
+}
+//
+void feed_back(NN *NNet, float train[N_INPUTS][N_TRAIN_COLS], int row) {
+    //update layer 2 weights
+    for (int u = 0; u < N_WEIGHTS_2; u++ ) {
+        //method of steepest decent
+        NNet->ws_2[u] += 
+            (train[row][N_TRAIN_COLS]- NNet->output)*slope_at_a_point(*NNet->ws_2, &wrapper);
+
+    }
+    
+    //update layer 
+}
+
 
 //Primary Function
 int main(void)
@@ -99,8 +130,10 @@ int main(void)
             NNx->input_neurons[e] = training_data[d][e];
         }
         //Propigate to layer 2 and output
-        feed_forward(NNx);
+        NNx->output=feed_forward(NNx);
     //TODO: Produce improvements by feedback "Learning Rule"
+
+
         cout << " Output: " << NNx->output;
     }
     return 0;
